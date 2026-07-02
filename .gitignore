@@ -4,6 +4,7 @@ __pycache__/
 
 # Geheimen en runtime: nooit naar GitHub.
 config.json
+schema.json
 mosquitto/data/
 mosquitto/log/
 zigbee2mqtt/data/

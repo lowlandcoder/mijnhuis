@@ -40,6 +40,24 @@ services:
       - zigbee2mqtt
     volumes:
       - ./config.json:/app/config.json:ro
+      - ./schema.json:/app/schema.json:ro
+    environment:
+      - TZ=Europe/Amsterdam
+    networks:
+      - huis
+
+  rooster:
+    build:
+      context: .
+      dockerfile: rooster/Dockerfile
+    container_name: rooster
+    restart: unless-stopped
+    volumes:
+      # Lezen en schrijven: de bewerkpagina slaat de tijden hierin op.
+      - ./schema.json:/app/schema.json
+    ports:
+      # Alleen op de server zelf; nginx zet dit door onder mijnhuis.lab023.nl/rooster.
+      - "127.0.0.1:8090:8090"
     environment:
       - TZ=Europe/Amsterdam
     networks:

@@ -22,12 +22,14 @@ echo "== mijnhuis publiceren =="
 cd "$BRON"
 git pull origin main
 
-sudo mkdir -p "$DOEL/stekker" "$DOEL/mosquitto/config"
+sudo mkdir -p "$DOEL/stekker" "$DOEL/rooster" "$DOEL/mosquitto/config"
 
 # Code en instellingen die wél gedeeld zijn:
 sudo cp "$BRON/docker-compose.yml"               "$DOEL/"
 sudo cp "$BRON/stekker.py"                        "$DOEL/"
 sudo cp "$BRON/stekker/Dockerfile"                "$DOEL/stekker/"
+sudo cp "$BRON/rooster/app.py"                    "$DOEL/rooster/"
+sudo cp "$BRON/rooster/Dockerfile"                "$DOEL/rooster/"
 sudo cp "$BRON/mosquitto/config/mosquitto.conf"   "$DOEL/mosquitto/config/"
 
 # config.json alleen aanmaken bij de allereerste keer; daarna nooit overschrijven.
@@ -37,9 +39,18 @@ if [ ! -f "$DOEL/config.json" ]; then
   echo "        (stekkernaam en locatie) en draai dit script daarna opnieuw."
 fi
 
-# Alleen de stekker-container hoeft opnieuw gebouwd; broker en brug blijven staan.
+# schema.json (de bewerkbare tijden) alleen bij de eerste keer aanmaken; daarna
+# nooit overschrijven, want de rooster-pagina wijzigt dit bestand.
+if [ ! -f "$DOEL/schema.json" ]; then
+  sudo cp "$BRON/schema.example.json" "$DOEL/schema.json"
+  echo "schema.json aangemaakt uit voorbeeld. Pas de tijden aan via de"
+  echo "rooster-pagina of rechtstreeks in dit bestand."
+fi
+
+# Stekker- en rooster-container (opnieuw) bouwen; broker en brug blijven staan.
 cd "$DOEL"
-sudo docker compose up -d --build stekker
+sudo docker compose up -d --build stekker rooster
 
 echo "== klaar =="
-echo "Controleer met: sudo docker compose logs --tail 5 stekker"
+echo "Controleer met: sudo docker compose logs --tail 8 stekker"
+echo "Rooster-pagina: https://mijnhuis.lab023.nl/rooster/"

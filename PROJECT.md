@@ -21,24 +21,30 @@ de zon.
 ## Opzet
 
 Eén zelfstandige Docker-stack (`docker compose`), los van de rest van de
-server. Drie containers op een eigen netwerk `huis`:
+server. Vier containers op een eigen netwerk `huis`:
 
 - **mosquitto** — MQTT-broker, alleen binnen de stack bereikbaar, zonder
   wachtwoord (`allow_anonymous true`).
-- **zigbee2mqtt** — leest de dongle uit; beheerpagina op poort 8080, ook
-  bereikbaar via `zigbee2mqtt.lab023.nl` (nginx reverse proxy, wachtwoord
-  gedeeld met MijnServer via `/etc/nginx/.htpasswd-mijnserver`, zie
-  `nginx-zigbee2mqtt.conf` en HANDLEIDING stap 7).
-- **stekker** — draait `stekker.py --loop`, bepaalt elke minuut de stand.
+- **zigbee2mqtt** — leest de dongle uit; beheerpagina op poort 8080, achter
+  wachtwoord bereikbaar via `mijnhuis.lab023.nl` (nginx reverse proxy in het
+  `default`-serverblok, wachtwoord gedeeld met MijnServer via
+  `/etc/nginx/.htpasswd-mijnserver`). Tweede ingang: `zigbee2mqtt.lab023.nl`.
+- **stekker** — draait `stekker.py --loop`, schakelt elke minuut alle stekkers
+  uit `schema.json`.
+- **rooster** — kleine Flask-service (poort 8090) met de bewerkpagina voor de
+  tijden, bereikbaar via `mijnhuis.lab023.nl/rooster/`. Schrijft `schema.json`.
 
 ## Bestanden
 
 | Bestand | Functie |
 |---|---|
-| `docker-compose.yml` | Definieert de drie containers; hierin het dongle-pad invullen |
-| `stekker.py` | Schakelscript met avond-, nacht- en ochtendvenster (zie Tijdregeling) |
-| `config.json` | Instellingen script: `mqtt_host` (=`mosquitto`), `stekker` (=`stekker_schuur`), locatie, tijdzone, `aanlooptijd_minuten`, `harde_uit`, `ochtend_start`. Staat in `.gitignore`, nooit naar GitHub |
+| `docker-compose.yml` | Definieert de vier containers; hierin het dongle-pad invullen |
+| `stekker.py` | Schakelscript; loopt alle stekkers uit `schema.json` af (zie Tijdregeling) |
+| `config.json` | Gedeelde instellingen: `mqtt_host` (=`mosquitto`), locatie, tijdzone. Staat in `.gitignore`, nooit naar GitHub |
 | `config.example.json` | Voorbeeld van `config.json` zonder echte waarden; wel gedeeld |
+| `schema.json` | Bewerkbare tijden per stekker (naam, `aanlooptijd_minuten`, `harde_uit`, `ochtend_start`). Wordt door de rooster-pagina geschreven en door `stekker.py` elke minuut gelezen. Staat in `.gitignore` |
+| `schema.example.json` | Voorbeeld van `schema.json`; wel gedeeld |
+| `rooster/app.py` + `rooster/Dockerfile` | Flask-bewerkpagina en API die `schema.json` valideert en opslaat |
 | `stekker/Dockerfile` | Bouwt de stekker-container (python + astral + paho-mqtt) |
 | `mosquitto/config/mosquitto.conf` | Broker-instellingen |
 | `zigbee2mqtt/data/configuration.yaml` | Z2M-instellingen; handmatig aanmaken (zie HANDLEIDING stap 2) |
@@ -48,16 +54,21 @@ server. Drie containers op een eigen netwerk `huis`:
 
 ## Tijdregeling
 
-`stekker.py` bepaalt de stand met drie vensters; AAN zodra één venster geldt:
+`stekker.py` bepaalt per stekker de stand met twee vensters; AAN zodra één
+venster geldt:
 
-- **avond**: vanaf `aanlooptijd_minuten` (30) voor zonsondergang;
-- **nacht**: door tot `harde_uit` (02:00), dan uit;
-- **ochtend**: vanaf `ochtend_start` (06:00) tot zonsopkomst, maar alleen als
-  het dan nog donker is (in de zomer dus niet).
+- **avond/nacht**: een tijdsinterval van `aanlooptijd_minuten` voor
+  zonsondergang tot `harde_uit`. Dit interval kan over middernacht lopen
+  (bijv. aan om 21:34, uit om 02:00 de volgende ochtend). Het script kijkt
+  daarom naar de zonsondergang van vandaag én van gisteren.
+- **ochtend**: vanaf `ochtend_start` tot zonsopkomst, maar alleen als het dan
+  nog donker is (in de zomer dus niet).
 
-Zonsopkomst en zonsondergang worden per dag met `astral` berekend uit de
-breedte- en lengtegraad in `config.json`. De drie tijden staan ook in
-`config.json` en zijn los aan te passen.
+Elke stekker heeft eigen waarden voor `aanlooptijd_minuten`, `harde_uit` en
+`ochtend_start` in `schema.json`, te wijzigen via de rooster-pagina. Zonsopkomst
+en zonsondergang worden per dag met `astral` berekend uit de breedte- en
+lengtegraad in `config.json`. `stekker.py` leest `schema.json` elke minuut, dus
+wijzigingen werken binnen een minuut zonder herstart.
 
 ## Veelgebruikte commando's
 
@@ -79,8 +90,9 @@ sudo docker exec mosquitto mosquitto_pub -t "zigbee2mqtt/<naam>/set" -m '{"state
 - Lokale werkmap: `C:\Lab023\mijnhuis`. Doel op de server: `/opt/mijnhuis/`.
 - MQTT-onderwerp van een apparaat: `zigbee2mqtt/<naam>/set` met payload
   `{"state":"ON"}` of `{"state":"OFF"}`.
-- Nog te doen: dongle-pad invullen, `configuration.yaml` aanmaken, locatie en
-  stekkernaam in `config.json` zetten, stekker koppelen.
+- Stand: live op de server. De stack draait, de nieuwe schakelregeling
+  (avond/nacht/ochtend) is uitgerold en het apparaat heet `stekker_schuur`
+  in zowel Zigbee2MQTT als de server-`config.json`.
 - De beheerpagina staat als kaart op de startpagina (`start.lab023.nl`),
   wijzend naar `zigbee2mqtt.lab023.nl`.
 - `.gitignore` sluit `config.json`, `__pycache__/`, `mosquitto/data/`,
@@ -91,12 +103,14 @@ sudo docker exec mosquitto mosquitto_pub -t "zigbee2mqtt/<naam>/set" -m '{"state
   `~/publiceer-mijnhuis.sh`. Bron `~/mijnhuis-repo`, doel `/opt/mijnhuis`.
 - GitHub-repository: `lowlandcoder/mijnhuis`. Vermelding in de hoofd-
   `OVERZICHT.md` staat er al in.
-- Belangrijk: `config.json` is gitignored en gaat niet mee. De nieuwe
-  schakeltijden werken toch, want het script vult ontbrekende sleutels met de
-  standaardwaarden (30 min, 02:00, 06:00). De naam `stekker_schuur` in de
-  lokale `config.json` komt dus niet vanzelf op de server; de servernaam blijft
-  ongewijzigd tot het apparaat in Zigbee2MQTT én de server-`config.json` samen
-  worden hernoemd.
+- Belangrijk: `config.json` is gitignored en gaat niet mee naar GitHub of de
+  server. De schakeltijden werken toch, want het script vult ontbrekende
+  sleutels met de standaardwaarden (30 min, 02:00, 06:00). Wijzigingen aan de
+  server-`config.json` (zoals de apparaatnaam) worden daar handmatig gedaan,
+  gevolgd door `docker compose restart stekker` om ze in te lezen.
+- Apparaat hernoemen: doe dit altijd op twee plekken tegelijk, anders komt het
+  schakelbericht niet aan. In Zigbee2MQTT via
+  `zigbee2mqtt/bridge/request/device/rename` en in de server-`config.json`.
 
 ## Mogelijke uitbreidingen
 

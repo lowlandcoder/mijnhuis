@@ -1,0 +1,6 @@
+{
+  "stekkers": [
+    { "naam": "stekker_schuur",    "aanlooptijd_minuten": 30, "harde_uit": "02:00", "ochtend_start": "06:00" },
+    { "naam": "stekker_woonkamer", "aanlooptijd_minuten": 30, "harde_uit": "02:00", "ochtend_start": "06:00" }
+  ]
+}
