@@ -102,13 +102,17 @@ def gewenste_stand(stekker, locatie, tz, nu):
     zon_op = zon["sunrise"]
     zon_onder = zon["sunset"]
 
-    marge = timedelta(minutes=stekker.get("aanlooptijd_minuten", 30))
+    marge = timedelta(minutes=stekker.get("aanlooptijd_minuten", 60))
     ochtend_start = _tijd_op_datum(nu.date(), tz, stekker.get("ochtend_start", "06:00"))
+    naloop = timedelta(minutes=stekker.get("ochtend_naloop_minuten", 30))
 
     avond_nacht = _avond_nacht_aan(
         nu, locatie, tz, marge, stekker.get("harde_uit", "02:00")
     )
-    ochtend = ochtend_start <= nu < zon_op  # alleen zolang het nog donker is
+    # Ochtend alleen als het om ochtend_start nog donker is (zon nog niet op).
+    # Dan aan van ochtend_start tot zonsopkomst plus de naloop.
+    donker_om_start = zon_op > ochtend_start
+    ochtend = donker_om_start and (ochtend_start <= nu < (zon_op + naloop))
 
     if avond_nacht:
         reden = "avond" if nu >= (zon_onder - marge) else "nacht"

@@ -37,12 +37,14 @@ def valideer(data):
             return "Ongeldige stekker."
         if not isinstance(s.get("naam"), str) or not s["naam"].strip():
             return "Een stekker mist een naam."
-        try:
-            marge = int(s["aanlooptijd_minuten"])
-        except (KeyError, ValueError, TypeError):
-            return f"Aanlooptijd van {s.get('naam', '?')} is geen getal."
-        if not 0 <= marge <= 600:
-            return f"Aanlooptijd van {s['naam']} moet 0 t/m 600 minuten zijn."
+        for veld, label in (("aanlooptijd_minuten", "Aanlooptijd"),
+                            ("ochtend_naloop_minuten", "Ochtendnaloop")):
+            try:
+                waarde = int(s[veld])
+            except (KeyError, ValueError, TypeError):
+                return f"{label} van {s.get('naam', '?')} is geen getal."
+            if not 0 <= waarde <= 600:
+                return f"{label} van {s['naam']} moet 0 t/m 600 minuten zijn."
         for veld in ("harde_uit", "ochtend_start"):
             if not TIJD.match(str(s.get(veld, ""))):
                 return f"Tijd '{veld}' van {s['naam']} moet als UU:MM (bijv. 02:00)."
@@ -57,9 +59,21 @@ def schoon(data):
             "aanlooptijd_minuten": int(s["aanlooptijd_minuten"]),
             "harde_uit": s["harde_uit"],
             "ochtend_start": s["ochtend_start"],
+            "ochtend_naloop_minuten": int(s["ochtend_naloop_minuten"]),
         }
         for s in data["stekkers"]
     ]}
+
+
+def normaliseer(schema):
+    """Vult ontbrekende velden met standaardwaarden, zodat de pagina altijd
+    alle velden toont (ook bij een ouder schema.json zonder ochtendnaloop)."""
+    for s in schema.get("stekkers", []):
+        s.setdefault("aanlooptijd_minuten", 60)
+        s.setdefault("harde_uit", "02:00")
+        s.setdefault("ochtend_start", "06:00")
+        s.setdefault("ochtend_naloop_minuten", 30)
+    return schema
 
 
 @app.get("/")
@@ -69,7 +83,7 @@ def pagina():
 
 @app.get("/api/schema")
 def api_get():
-    return jsonify(lees_schema())
+    return jsonify(normaliseer(lees_schema()))
 
 
 @app.post("/api/schema")
@@ -121,8 +135,9 @@ HTML = """<!doctype html>
   <p class="uitleg">Per stekker: de <em>aanlooptijd</em> is het aantal minuten
   voor zonsondergang dat de stekker aangaat. <em>Harde uit</em> is de tijd dat
   hij 's nachts uitgaat. <em>Ochtendstart</em> is de tijd waarop hij 's ochtends
-  weer aangaat als het dan nog donker is, tot zonsopkomst. Wijzigingen werken
-  binnen een minuut.</p>
+  weer aangaat als het dan nog donker is; <em>ochtendnaloop</em> is het aantal
+  minuten na zonsopkomst dat hij dan nog aan blijft. Wijzigingen werken binnen
+  een minuut.</p>
 
   <div id="lijst"></div>
 
@@ -163,6 +178,10 @@ HTML = """<!doctype html>
             <label>Ochtendstart</label>
             <input type="time" data-i="${i}" data-k="ochtend_start" value="${s.ochtend_start}">
           </div>
+          <div class="veld">
+            <label>Ochtendnaloop (minuten na zonsopkomst)</label>
+            <input type="number" min="0" max="600" data-i="${i}" data-k="ochtend_naloop_minuten" value="${s.ochtend_naloop_minuten}">
+          </div>
         </div>`;
       lijst.appendChild(kaart);
     });
@@ -173,7 +192,8 @@ HTML = """<!doctype html>
     const data = JSON.parse(JSON.stringify(huidig));
     lijst.querySelectorAll("input").forEach(inp => {
       const i = Number(inp.dataset.i), k = inp.dataset.k;
-      data.stekkers[i][k] = (k === "aanlooptijd_minuten") ? Number(inp.value) : inp.value;
+      const getallen = ["aanlooptijd_minuten", "ochtend_naloop_minuten"];
+      data.stekkers[i][k] = getallen.includes(k) ? Number(inp.value) : inp.value;
     });
     return data;
   }

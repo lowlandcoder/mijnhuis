@@ -57,18 +57,21 @@ server. Vier containers op een eigen netwerk `huis`:
 `stekker.py` bepaalt per stekker de stand met twee vensters; AAN zodra één
 venster geldt:
 
-- **avond/nacht**: een tijdsinterval van `aanlooptijd_minuten` voor
-  zonsondergang tot `harde_uit`. Dit interval kan over middernacht lopen
-  (bijv. aan om 21:34, uit om 02:00 de volgende ochtend). Het script kijkt
+- **avond/nacht**: een tijdsinterval van `aanlooptijd_minuten` (standaard 60)
+  voor zonsondergang tot `harde_uit`. Dit interval kan over middernacht lopen
+  (bijv. aan om 21:04, uit om 02:00 de volgende ochtend). Het script kijkt
   daarom naar de zonsondergang van vandaag én van gisteren.
-- **ochtend**: vanaf `ochtend_start` tot zonsopkomst, maar alleen als het dan
-  nog donker is (in de zomer dus niet).
+- **ochtend**: alleen als het om `ochtend_start` (06:00) nog donker is (zon nog
+  niet op). Dan aan van `ochtend_start` tot zonsopkomst plus
+  `ochtend_naloop_minuten` (standaard 30). In de zomer is het om 06:00 al licht,
+  dus dan geen ochtendvenster.
 
-Elke stekker heeft eigen waarden voor `aanlooptijd_minuten`, `harde_uit` en
-`ochtend_start` in `schema.json`, te wijzigen via de rooster-pagina. Zonsopkomst
-en zonsondergang worden per dag met `astral` berekend uit de breedte- en
-lengtegraad in `config.json`. `stekker.py` leest `schema.json` elke minuut, dus
-wijzigingen werken binnen een minuut zonder herstart.
+Elke stekker heeft eigen waarden voor `aanlooptijd_minuten`, `harde_uit`,
+`ochtend_start` en `ochtend_naloop_minuten` in `schema.json`, te wijzigen via de
+rooster-pagina. Zonsopkomst en zonsondergang worden per dag met `astral`
+berekend uit de breedte- en lengtegraad in `config.json`. `stekker.py` leest
+`schema.json` elke minuut, dus wijzigingen werken binnen een minuut zonder
+herstart.
 
 ## Veelgebruikte commando's
 
