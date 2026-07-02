@@ -1,0 +1,9 @@
+Thumbs.db
+.DS_Store
+__pycache__/
+
+# Geheimen en runtime: nooit naar GitHub.
+config.json
+mosquitto/data/
+mosquitto/log/
+zigbee2mqtt/data/

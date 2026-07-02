@@ -1,0 +1,13 @@
+{
+  "mqtt_host": "mosquitto",
+  "mqtt_poort": 1883,
+  "mqtt_gebruiker": "",
+  "mqtt_wachtwoord": "",
+  "stekker": "stekker_schuur",
+  "breedtegraad": 52.3676,
+  "lengtegraad": 4.9041,
+  "tijdzone": "Europe/Amsterdam",
+  "aanlooptijd_minuten": 30,
+  "harde_uit": "02:00",
+  "ochtend_start": "06:00"
+}
