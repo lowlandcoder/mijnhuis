@@ -39,6 +39,11 @@ if [ ! -f "$DOEL/config.json" ]; then
   echo "        (stekkernaam en locatie) en draai dit script daarna opnieuw."
 fi
 
+# Docker maakt van een ontbrekende mount-bron per ongeluk een MAP; opruimen.
+if [ -d "$DOEL/schema.json" ]; then
+  sudo rm -rf "$DOEL/schema.json"
+fi
+
 # schema.json (de bewerkbare tijden) alleen bij de eerste keer aanmaken; daarna
 # nooit overschrijven, want de rooster-pagina wijzigt dit bestand.
 if [ ! -f "$DOEL/schema.json" ]; then
