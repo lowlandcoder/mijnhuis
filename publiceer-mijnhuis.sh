@@ -58,4 +58,4 @@ sudo docker compose up -d --build stekker rooster
 
 echo "== klaar =="
 echo "Controleer met: sudo docker compose logs --tail 8 stekker"
-echo "Rooster-pagina: https://mijnhuis.lab023.nl/rooster/"
+echo "Rooster-pagina: https://mijnhuis.lab023.nl/"

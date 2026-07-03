@@ -26,13 +26,12 @@ server. Vier containers op een eigen netwerk `huis`:
 - **mosquitto** — MQTT-broker, alleen binnen de stack bereikbaar, zonder
   wachtwoord (`allow_anonymous true`).
 - **zigbee2mqtt** — leest de dongle uit; beheerpagina op poort 8080, achter
-  wachtwoord bereikbaar via `mijnhuis.lab023.nl` (nginx reverse proxy in het
-  `default`-serverblok, wachtwoord gedeeld met MijnServer via
-  `/etc/nginx/.htpasswd-mijnserver`). Tweede ingang: `zigbee2mqtt.lab023.nl`.
+  wachtwoord bereikbaar via `mijnzigbee.lab023.nl` (nginx reverse proxy,
+  wachtwoord gedeeld met MijnServer via `/etc/nginx/.htpasswd-mijnserver`).
 - **stekker** — draait `stekker.py --loop`, schakelt elke minuut alle stekkers
   uit `schema.json`.
 - **rooster** — kleine Flask-service (poort 8090) met de bewerkpagina voor de
-  tijden, bereikbaar via `mijnhuis.lab023.nl/rooster/`. Schrijft `schema.json`.
+  tijden, bereikbaar op de root van `mijnhuis.lab023.nl`. Schrijft `schema.json`.
 
 ## Bestanden
 
@@ -48,7 +47,8 @@ server. Vier containers op een eigen netwerk `huis`:
 | `stekker/Dockerfile` | Bouwt de stekker-container (python + astral + paho-mqtt) |
 | `mosquitto/config/mosquitto.conf` | Broker-instellingen |
 | `zigbee2mqtt/data/configuration.yaml` | Z2M-instellingen; handmatig aanmaken (zie HANDLEIDING stap 2) |
-| `nginx-zigbee2mqtt.conf` | Reverse proxy met wachtwoord voor `zigbee2mqtt.lab023.nl` (HANDLEIDING stap 7) |
+| `nginx-mijnhuis.conf` | Reverse proxy met wachtwoord voor `mijnhuis.lab023.nl`; toont de rooster-pagina (poort 8090) op de root |
+| `nginx-zigbee2mqtt.conf` | Reverse proxy met wachtwoord voor de Zigbee2MQTT-beheerpagina, bereikbaar via `mijnzigbee.lab023.nl` (HANDLEIDING stap 7) |
 | `publiceer-mijnhuis.sh` | Publicatiescript op de server: `git pull` + bestanden naar `/opt/mijnhuis`, daarna rebuild van de stekker-container. Laat config.json en data-mappen ongemoeid |
 | `HANDLEIDING.md` | Volledige installatie- en beheeruitleg |
 
@@ -97,7 +97,8 @@ sudo docker exec mosquitto mosquitto_pub -t "zigbee2mqtt/<naam>/set" -m '{"state
   (avond/nacht/ochtend) is uitgerold en het apparaat heet `stekker_schuur`
   in zowel Zigbee2MQTT als de server-`config.json`.
 - De beheerpagina staat als kaart op de startpagina (`start.lab023.nl`),
-  wijzend naar `zigbee2mqtt.lab023.nl`.
+  wijzend naar `mijnzigbee.lab023.nl`. De rooster-pagina staat op de root van
+  `mijnhuis.lab023.nl`.
 - `.gitignore` sluit `config.json`, `__pycache__/`, `mosquitto/data/`,
   `mosquitto/log/` en `zigbee2mqtt/data/` uit: hierin staan het wachtwoord,
   de eigen locatie en de gegenereerde Zigbee-netwerksleutel. `config.example.json`

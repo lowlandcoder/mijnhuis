@@ -56,7 +56,7 @@ services:
       # Lezen en schrijven: de bewerkpagina slaat de tijden hierin op.
       - ./schema.json:/app/schema.json
     ports:
-      # Alleen op de server zelf; nginx zet dit door onder mijnhuis.lab023.nl/rooster.
+      # Alleen op de server zelf; nginx zet dit door op de root van mijnhuis.lab023.nl.
       - "127.0.0.1:8090:8090"
     environment:
       - TZ=Europe/Amsterdam
